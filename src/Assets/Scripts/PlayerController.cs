@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    const float TRANS_TIME = 0.05f;//移動速度遷移時間
-    const float ROT_TIME = 0.05f;//回転遷移時間
+    const int TRANS_TIME = 3;//移動速度遷移時間
+    const int ROT_TIME = 3;//回転遷移時間
     enum RotState
     {
         Up = 0,
@@ -25,6 +25,8 @@ public class PlayerController : MonoBehaviour
     AnimationController _animationController = new AnimationController();
     Vector2Int _last_position;
     RotState _last_rotate = RotState.Up;
+
+    Logicallnput logicallnput = new ();
     // Start is called before the first frame update
     void Start()
     {
@@ -55,7 +57,7 @@ public class PlayerController : MonoBehaviour
         return true;
     }
 
-    void SetTransition(Vector2Int pos, RotState rot, float time)
+    void SetTransition(Vector2Int pos, RotState rot, int time)
     {
         //補間のために保存しておく
         _last_position = _position;
@@ -142,6 +144,33 @@ public class PlayerController : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    static readonly KeyCode[] key_code_tbl = new KeyCode[(int)Logicallnput.Key.MAX]
+    {
+        KeyCode.RightArrow,
+        KeyCode.LeftArrow,
+        KeyCode.X,
+        KeyCode.Z,
+        KeyCode.UpArrow,
+        KeyCode.DownArrow,
+    };
+
+    //入力を取り込む
+    void UpdateInput()
+    {
+        Logicallnput.Key inputDev = 0;
+
+        //キー入力取得
+        for (int i = 0; i < (int)Logicallnput.Key.MAX; i++)
+        {
+            if(Input.GetKey(key_code_tbl[i]))
+            {
+                inputDev |= (Logicallnput.Key)(1 << i);
+            }
+        }
+
+        logicallnput.Update(inputDev);
+    }
+
     void Control()
     {
         //平行移動のキー入力取得
@@ -171,13 +200,18 @@ public class PlayerController : MonoBehaviour
         }
     }
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
+        //入力を取り込む
+        UpdateInput();
+
+        //操作を受けて動かす
         if(!_animationController.Update(Time.deltaTime))//アニメ中はキー入力を受け付けない
         {
             Control();
         }
 
+        //表示
         float anim_rate = _animationController.GetNormalized();
         _puyoControllers[0].SetPos(Interpolate(_position, RotState.Invalid, _last_position, RotState.Invalid, anim_rate));
         _puyoControllers[1].SetPos(Interpolate(_position, _rotate, _last_position, _last_rotate, anim_rate));
